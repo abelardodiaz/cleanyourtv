@@ -16,7 +16,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The launcher's settings: the values in res/values/config.xml, with an optional overlay read from
@@ -72,6 +75,10 @@ final class Config {
     final int[] settingsKeycodes;
     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
     final boolean settingsKeyPanel;
+    /** Remote keycode to the app it opens through HomeKeyService (config.json, app_keys); empty unless set. */
+    final Map<Integer, String> appKeys;
+    /** HomeKeyService logs every key it sees, keycode and scancode, to find a button's code (key_log). */
+    final boolean keyLog;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
     /** Whether the overlay file was present and parsed. */
@@ -84,8 +91,8 @@ final class Config {
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
-                   int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
-                   Festival festival) {
+                   int[] settingsKeycodes, boolean settingsKeyPanel, Map<Integer, String> appKeys, boolean keyLog,
+                   File wallpaper, boolean overlayApplied, Festival festival) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -112,6 +119,8 @@ final class Config {
         this.skyIntensity = skyIntensity;
         this.settingsKeycodes = settingsKeycodes;
         this.settingsKeyPanel = settingsKeyPanel;
+        this.appKeys = Collections.unmodifiableMap(appKeys);
+        this.keyLog = keyLog;
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
         this.festival = festival;
@@ -150,6 +159,8 @@ final class Config {
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
+        Map<Integer, String> appKeys = new HashMap<>();
+        boolean keyLog = false;
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -183,6 +194,8 @@ final class Config {
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
+            appKeys = keyMap(json, "app_keys", appKeys);
+            keyLog = bool(json, "key_log", keyLog);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -203,8 +216,8 @@ final class Config {
         return new Config(dock, fillDock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
-                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
-                festival);
+                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, appKeys, keyLog,
+                wallpaper, applied, festival);
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
@@ -299,6 +312,26 @@ final class Config {
             if (!(item instanceof Number)) return fallback;
             out[i] = ((Number) item).intValue();
             if (out[i] < 1) return fallback;
+        }
+        return out;
+    }
+
+    /** {"4065": "com.google.android.youtube.tv", ...}: keycode as the name, package as the value; bad entries are skipped. */
+    private static Map<Integer, String> keyMap(JSONObject o, String key, Map<Integer, String> fallback) {
+        Object v = o.opt(key);
+        if (!(v instanceof JSONObject)) return fallback;
+        JSONObject m = (JSONObject) v;
+        Map<Integer, String> out = new HashMap<>();
+        for (Iterator<String> it = m.keys(); it.hasNext(); ) {
+            String code = it.next();
+            Object pkg = m.opt(code);
+            if (!(pkg instanceof String) || ((String) pkg).trim().isEmpty()) continue;
+            try {
+                int keycode = Integer.parseInt(code.trim());
+                if (keycode > 0) out.put(keycode, ((String) pkg).trim());
+            } catch (NumberFormatException e) {
+                // not a keycode, skip it
+            }
         }
         return out;
     }
