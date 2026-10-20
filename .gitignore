@@ -14,3 +14,6 @@ backup/
 *.aab
 launcher/hs_err_pid*.log
 launcher/replay_pid*.log
+
+# Configs de cada casa (dock, apps ocultas, teclas, fondos): se quedan en esta compu, no se publican
+privado/
