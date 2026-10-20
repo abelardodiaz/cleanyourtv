@@ -79,6 +79,8 @@ final class Config {
     final Map<Integer, String> appKeys;
     /** HomeKeyService logs every key it sees, keycode and scancode, to find a button's code (key_log). */
     final boolean keyLog;
+    /** Band behind the dock row, #AARRGGBB (dock_color); see DockDecoration for the default. Null when unset. */
+    final Integer dockColor;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
     /** Whether the overlay file was present and parsed. */
@@ -92,7 +94,7 @@ final class Config {
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, Map<Integer, String> appKeys, boolean keyLog,
-                   File wallpaper, boolean overlayApplied, Festival festival) {
+                   Integer dockColor, File wallpaper, boolean overlayApplied, Festival festival) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -121,6 +123,7 @@ final class Config {
         this.settingsKeyPanel = settingsKeyPanel;
         this.appKeys = Collections.unmodifiableMap(appKeys);
         this.keyLog = keyLog;
+        this.dockColor = dockColor;
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
         this.festival = festival;
@@ -161,6 +164,7 @@ final class Config {
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         Map<Integer, String> appKeys = new HashMap<>();
         boolean keyLog = false;
+        Integer dockColor = null;
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -196,6 +200,7 @@ final class Config {
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
             appKeys = keyMap(json, "app_keys", appKeys);
             keyLog = bool(json, "key_log", keyLog);
+            dockColor = translucentColor(json, "dock_color");
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -217,7 +222,7 @@ final class Config {
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, appKeys, keyLog,
-                wallpaper, applied, festival);
+                dockColor, wallpaper, applied, festival);
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
@@ -298,6 +303,17 @@ final class Config {
             return c | 0xFF000000;   // always opaque: the window behind is black anyway
         } catch (IllegalArgumentException e) {
             return fallback;
+        }
+    }
+
+    /** #RRGGBB or #AARRGGBB with its alpha kept; null when missing or not a colour. */
+    private static Integer translucentColor(JSONObject o, String key) {
+        Object v = o.opt(key);
+        if (!(v instanceof String)) return null;
+        try {
+            return Color.parseColor(((String) v).trim());
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 

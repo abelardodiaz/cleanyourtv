@@ -12,16 +12,21 @@ import androidx.recyclerview.widget.RecyclerView;
 /** Draws the tvOS style lighter band behind the first (dock) row and adds a gap below it. */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
+    /** Plain background: a solid band a shade lighter than black. */
+    static final int SOLID = 0xFF141416;
+    /** Over a wallpaper: a see-through light band, so the picture shows through the dock (issue #207). */
+    static final int OVER_WALLPAPER = 0x33FFFFFF;
+
     private final int dockSize;
     private final float density;
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
 
-    DockDecoration(int dockSize, float density) {
+    DockDecoration(int dockSize, float density, int bandColor) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(0xFF141416);
+        band.setColor(bandColor);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(0x1FFFFFFF);
