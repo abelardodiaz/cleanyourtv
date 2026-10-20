@@ -79,6 +79,8 @@ final class Config {
     final Map<Integer, String> appKeys;
     /** HomeKeyService logs every key it sees, keycode and scancode, to find a button's code (key_log). */
     final boolean keyLog;
+    /** Remote keycodes HomeKeyService swallows, for buttons whose stock target is gone (config.json, ignore_keys). */
+    final int[] ignoreKeys;
     /** Band behind the dock row, #AARRGGBB (dock_color); see DockDecoration for the default. Null when unset. */
     final Integer dockColor;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
@@ -94,7 +96,7 @@ final class Config {
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, Map<Integer, String> appKeys, boolean keyLog,
-                   Integer dockColor, File wallpaper, boolean overlayApplied, Festival festival) {
+                   int[] ignoreKeys, Integer dockColor, File wallpaper, boolean overlayApplied, Festival festival) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -123,6 +125,7 @@ final class Config {
         this.settingsKeyPanel = settingsKeyPanel;
         this.appKeys = Collections.unmodifiableMap(appKeys);
         this.keyLog = keyLog;
+        this.ignoreKeys = ignoreKeys;
         this.dockColor = dockColor;
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
@@ -164,6 +167,7 @@ final class Config {
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         Map<Integer, String> appKeys = new HashMap<>();
         boolean keyLog = false;
+        int[] ignoreKeys = new int[0];
         Integer dockColor = null;
         boolean applied = false;
 
@@ -200,6 +204,7 @@ final class Config {
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
             appKeys = keyMap(json, "app_keys", appKeys);
             keyLog = bool(json, "key_log", keyLog);
+            ignoreKeys = intArray(json, "ignore_keys", ignoreKeys);
             dockColor = translucentColor(json, "dock_color");
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
@@ -222,7 +227,7 @@ final class Config {
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, appKeys, keyLog,
-                dockColor, wallpaper, applied, festival);
+                ignoreKeys, dockColor, wallpaper, applied, festival);
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {

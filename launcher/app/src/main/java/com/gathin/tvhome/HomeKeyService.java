@@ -20,7 +20,8 @@ import java.util.Map;
  * App buttons: on TCL and Hisense Google TV sets the Netflix, YouTube, Prime Video, Apple TV and ViX
  * buttons become broadcasts that only the stock Google TV home answers, so they do nothing once it is
  * disabled. app_keys in config.json maps each keycode to the app it should open; key_log prints every
- * key's keycode and scancode to logcat (tag HomeKeyService) to find them.
+ * key's keycode and scancode to logcat (tag HomeKeyService) to find them. ignore_keys swallows buttons
+ * whose stock target is disabled, such as the profile button that opens the Google TV home's picker.
  *
  * Enable over adb:
  *   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
@@ -36,6 +37,7 @@ public class HomeKeyService extends AccessibilityService {
     private boolean settingsPanel;
     private Map<Integer, String> appKeys = Collections.emptyMap();
     private boolean keyLog;
+    private int[] ignoreKeys = new int[0];
 
     @Override
     protected void onServiceConnected() {
@@ -47,6 +49,7 @@ public class HomeKeyService extends AccessibilityService {
         settingsPanel = config.settingsKeyPanel;
         appKeys = config.appKeys;
         keyLog = config.keyLog;
+        ignoreKeys = config.ignoreKeys;
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -79,6 +82,7 @@ public class HomeKeyService extends AccessibilityService {
             }
             return true;
         }
+        for (int code : ignoreKeys) if (event.getKeyCode() == code) return true;
         String pkg = appKeys.get(event.getKeyCode());
         if (pkg != null) {
             Intent app = appIntent(pkg);
